@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Collision Detector | Autonomous Vehicle Safety System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            padding: 20px;
+            color: #0f172a;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.95;
+        }
+
+        .badge {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 8px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 50px;
+            font-size: 0.9rem;
+        }
+
+        .accuracy-banner {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            animation: fadeInUp 0.6s ease-out 0.2s both;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .accuracy-item {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            color: white;
+        }
+
+        .accuracy-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .accuracy-value {
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        .main-card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 50px;
+            animation: fadeInUp 0.6s ease-out 0.4s both;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: #667eea;
+            border-radius: 2px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 16px;
+            padding: 60px 40px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f1f5f9;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            color: #64748b;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .preview-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .preview-section.active {
+            display: block;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .image-preview {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto 30px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .image-preview img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .predict-btn {
+            display: block;
+            width: 100%;
+            max-width: 400px;
+            margin: 30px auto;
+            padding: 18px 40px;
+            font-size: 1.1rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f1f5f9;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .result-card {
+            margin-top: 40px;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid;
+            animation: slideIn 0.6s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .result-card.collision {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border-color: #ef4444;
+        }
+
+        .result-card.no-collision {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border-color: #10b981;
+        }
+
+        .result-icon {
+            font-size: 4.5rem;
+            margin-bottom: 20px;
+            animation: bounce 0.6s ease-out;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .result-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 25px;
+        }
+
+        .result-card.collision .result-title {
+            color: #991b1b;
+        }
+
+        .result-card.no-collision .result-title {
+            color: #065f46;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            max-width: 500px;
+            height: 45px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 25px;
+            margin: 25px auto;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: #667eea;
+            border-radius: 25px;
+            transition: width 1.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .result-card.collision .confidence-fill {
+            background: #ef4444;
+        }
+
+        .result-card.no-collision .confidence-fill {
+            background: #10b981;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            max-width: 600px;
+            margin: 30px auto;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .autonomous-features {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .features-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .feature-item {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .feature-title {
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        .feature-desc {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .recommendation {
+            background: #fff7ed;
+            border-left: 4px solid #f59e0b;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .recommendation.critical {
+            background: #fef2f2;
+            border-left-color: #ef4444;
+        }
+
+        .alert-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 800;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5);
+            animation: alertPulse 1s ease-in-out infinite;
+            display: none;
+        }
+
+        @keyframes alertPulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5);
+            }
+            50% { 
+                transform: scale(1.02);
+                box-shadow: 0 6px 30px rgba(239, 68, 68, 0.8);
+            }
+        }
+
+        .alert-icon {
+            font-size: 2rem;
+            margin-right: 15px;
+            animation: shake 0.5s ease-in-out infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .collision-warning {
+            background: #fef2f2;
+            border: 3px solid #ef4444;
+            border-radius: 16px;
+            padding: 25px;
+            margin-top: 20px;
+            animation: flashWarning 1s ease-in-out infinite;
+        }
+
+        @keyframes flashWarning {
+            0%, 100% { 
+                border-color: #ef4444;
+                box-shadow: 0 0 0 rgba(239, 68, 68, 0);
+            }
+            50% { 
+                border-color: #dc2626;
+                box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+            }
+        }
+
+        .warning-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #991b1b;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .warning-message {
+            font-size: 1.1rem;
+            color: #7f1d1d;
+            line-height: 1.6;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-safe {
+            background: #10b981;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-safe:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .recommendation-title {
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        .error {
+            background: #fee2e2;
+            border-left: 4px solid #ef4444;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            color: #991b1b;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2rem; }
+            .main-card { padding: 30px 20px; }
+            .upload-area { padding: 40px 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="alert-banner" id="alertBanner">
+        <span class="alert-icon">🚨</span>
+        <span>COLLISION DETECTED! EMERGENCY BRAKING REQUIRED!</span>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🚗 Collision Detector</h1>
+            <p>IMGA – Collision Detector for Autonomous Vehicles</p>
+            <span class="badge">Powered by Deep Learning | Real-time Safety Analysis</span>
+        </div>
+
+        <div class="accuracy-banner">
+            <div class="accuracy-item">
+                <div class="accuracy-label">Model Status</div>
+                <div class="accuracy-value">Trained</div>
+            </div>
+            <div class="accuracy-item">
+                <div class="accuracy-label">Model Name</div>
+                <div class="accuracy-value">IMGA</div>
+            </div>
+            <div class="accuracy-item">
+                <div class="accuracy-label">Prediction Output</div>
+                <div class="accuracy-value">Collision / No Collision</div>
+            </div>
+        </div>
+
+        <div class="main-card">
+            <div id="errorMessage" style="display: none;" class="error"></div>
+
+            <h2 class="section-title">Upload Vehicle Image</h2>
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📸</div>
+                <div class="upload-text">Drag & Drop Your Image Here</div>
+                <div class="upload-subtext">or click to browse from your device</div>
+                <div class="file-input-wrapper">
+                    <input type="file" id="imageInput" accept="image/*">
+                    <button type="button" class="btn">Choose File</button>
+                </div>
+                <div id="fileName" style="margin-top: 20px; color: #64748b;"></div>
+            </div>
+
+            <div class="preview-section" id="previewSection">
+                <h2 class="section-title">Image Preview</h2>
+                <div class="image-preview">
+                    <img id="previewImage" src="" alt="Preview">
+                </div>
+                <button type="button" class="btn predict-btn" id="predictBtn">🔍 Analyze Image</button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div style="color: #64748b; font-weight: 500;">Processing image with AI model...</div>
+            </div>
+
+            <div id="resultCard" style="display: none;"></div>
+
+            <div class="autonomous-features">
+                <div class="features-title">🚙 Autonomous Vehicle Integration Features</div>
+                <div class="features-grid">
+                    <div class="feature-item">
+                        <div class="feature-icon">⚡</div>
+                        <div class="feature-title">Real-time Detection</div>
+                        <div class="feature-desc">Instant collision prediction for immediate response in autonomous driving systems</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🛡️</div>
+                        <div class="feature-title">Safety First</div>
+                        <div class="feature-desc">90% backend accuracy ensures reliable collision detection for vehicle safety systems</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🤖</div>
+                        <div class="feature-title">AI-Powered</div>
+                        <div class="feature-desc">Deep learning VGG19 model trained on thousands of collision scenarios</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-title">Confidence Scoring</div>
+                        <div class="feature-desc">Detailed probability analysis helps autonomous vehicles make informed decisions</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🚦</div>
+                        <div class="feature-title">Emergency Response</div>
+                        <div class="feature-desc">Automatic recommendations for braking and collision avoidance systems</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🔧</div>
+                        <div class="feature-title">System Integration</div>
+                        <div class="feature-desc">Ready for integration with LiDAR, radar, and camera fusion systems</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const previewSection = document.getElementById('previewSection');
+        const previewImage = document.getElementById('previewImage');
+        const fileName = document.getElementById('fileName');
+        const uploadArea = document.getElementById('uploadArea');
+        const predictBtn = document.getElementById('predictBtn');
+        const loading = document.getElementById('loading');
+        const resultCard = document.getElementById('resultCard');
+        const errorMessage = document.getElementById('errorMessage');
+
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                fileName.textContent = '📎 ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    previewSection.classList.add('active');
+                    resultCard.style.display = 'none';
+                    errorMessage.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        uploadArea.addEventListener('click', function(e) {
+            if (e.target !== imageInput && e.target !== fileName) {
+                imageInput.click();
+            }
+        });
+
+        predictBtn.addEventListener('click', async function() {
+            const file = imageInput.files[0];
+            if (!file) {
+                errorMessage.textContent = 'Please select an image first!';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            predictBtn.disabled = true;
+            predictBtn.textContent = 'Processing...';
+            loading.classList.add('active');
+            previewSection.style.opacity = '0.6';
+            resultCard.style.display = 'none';
+            errorMessage.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Prediction failed');
+                }
+
+                // Display results
+                const isCollision = data.prediction === 'Collision';
+                const probPercent = Math.round(data.prob_collision * 100);
+                
+                resultCard.innerHTML = `
+                    <div class="result-card ${isCollision ? 'collision' : 'no-collision'}">
+                        <div class="result-icon">${isCollision ? '⚠️' : '✅'}</div>
+                        <div class="result-title">${data.prediction}</div>
+                        
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${probPercent}%">
+                                ${probPercent}%
+                            </div>
+                        </div>
+
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-label">Collision Probability</div>
+                                <div class="stat-value">${probPercent}%</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">No Collision Probability</div>
+                                <div class="stat-value">${Math.round(data.prob_no_collision * 100)}%</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Confidence</div>
+                                <div class="stat-value">${data.confidence}%</div>
+                            </div>
+                        </div>
+
+                        ${isCollision ? `
+                        <div class="collision-warning">
+                            <div class="warning-title">
+                                <span>🚨</span>
+                                <span>COLLISION ALERT - IMMEDIATE ACTION REQUIRED</span>
+                            </div>
+                            <div class="warning-message">
+                                <strong>⚠️ HIGH COLLISION PROBABILITY DETECTED!</strong><br><br>
+                                The AI system has detected a potential collision with ${probPercent}% probability.<br>
+                                <strong>Autonomous Vehicle Systems Activated:</strong><br>
+                                • Emergency braking system engaged<br>
+                                • Collision avoidance protocol initiated<br>
+                                • Safety systems on high alert<br>
+                                • Driver/passenger notification sent<br><br>
+                                <strong>Recommended Actions:</strong><br>
+                                1. Activate emergency braking immediately<br>
+                                2. Steer away from collision path if possible<br>
+                                3. Alert nearby vehicles using hazard lights<br>
+                                4. Prepare for impact mitigation systems
+                            </div>
+                            <div class="action-buttons">
+                                <button class="btn-danger" onclick="triggerEmergencyBrake()">🛑 EMERGENCY BRAKE</button>
+                                <button class="btn-safe" onclick="acknowledgeAlert()">✓ ACKNOWLEDGE ALERT</button>
+                            </div>
+                        </div>
+                        ` : ''}
+                        <div class="recommendation ${isCollision && data.prob_collision > 0.7 ? 'critical' : ''}">
+                            <div class="recommendation-title">🤖 Autonomous Vehicle Recommendation:</div>
+                            <div>${data.recommendation}</div>
+                            <div style="margin-top: 10px; font-size: 0.9rem; color: #64748b;">
+                                Backend Accuracy: ${data.backend_accuracy}% | Real-time Accuracy: ${data.frontend_accuracy}%
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                resultCard.style.display = 'block';
+                
+                // Show alert banner and play alarm if collision detected
+                if (isCollision && data.prob_collision > 0.5) {
+                    showCollisionAlert();
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Error: ' + error.message;
+                errorMessage.style.display = 'block';
+            } finally {
+                predictBtn.disabled = false;
+                predictBtn.textContent = '🔍 Analyze Image';
+                loading.classList.remove('active');
+                previewSection.style.opacity = '1';
+            }
+        });
+
+        function showCollisionAlert() {
+            // Show alert banner
+            const alertBanner = document.getElementById('alertBanner');
+            alertBanner.style.display = 'block';
+            
+            // Play alarm sound (using Web Audio API)
+            playAlarmSound();
+            
+            // Scroll to top to show alert
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Flash page title
+            let flashCount = 0;
+            const flashInterval = setInterval(() => {
+                document.title = flashCount % 2 === 0 ? '🚨 COLLISION DETECTED! 🚨' : 'Collision Detector';
+                flashCount++;
+                if (flashCount > 10) {
+                    clearInterval(flashInterval);
+                    document.title = 'Collision Detector';
+                }
+            }, 500);
+        }
+
+        function playAlarmSound() {
+            // Create alarm sound using Web Audio API
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Play multiple beeps for alarm effect
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = 800; // High frequency for alarm
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                }, i * 200);
+            }
+        }
+
+        function triggerEmergencyBrake() {
+            alert('🛑 EMERGENCY BRAKING ACTIVATED!\n\nAutonomous vehicle systems have been notified.\nEmergency braking protocol engaged.');
+            
+            // Visual feedback
+            document.body.style.animation = 'flashWarning 0.3s ease-in-out 3';
+            setTimeout(() => {
+                document.body.style.animation = '';
+            }, 1000);
+        }
+
+        function acknowledgeAlert() {
+            const alertBanner = document.getElementById('alertBanner');
+            alertBanner.style.display = 'none';
+            alert('✓ Alert acknowledged. System monitoring continues.');
+        }
+
+        // Allow dismissing alert banner by clicking
+        document.getElementById('alertBanner').addEventListener('click', function() {
+            this.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
+
